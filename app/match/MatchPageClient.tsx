@@ -1,7 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { PhaserMatchView, PrototypeOverlay, useOfflineEngine, useOnlineMatch } from "../../src/features/match";
+import {
+  MatchHud,
+  PhaserMatchView,
+  useOfflineEngine,
+  useOnlineMatch,
+} from "../../src/features/match";
 
 export default function MatchPageClient() {
   const [mode, setMode] = useState<"offline" | "online">("offline");
@@ -55,7 +60,22 @@ export default function MatchPageClient() {
         </div>
         {statusLine && <div className="mt-1 text-xs text-white/80">{statusLine}</div>}
       </div>
-      <PrototypeOverlay snapshot={snapshot} onRestart={restart} />
+      <MatchHud
+        snapshot={snapshot}
+        localPlayerId={mode === "offline" ? "player-0" : null}
+      />
+      {mode === "offline" && (
+        <div className="absolute left-3 top-14 z-10">
+          <button
+            type="button"
+            onClick={restart}
+            className="rounded bg-white/15 px-3 py-1.5 text-sm text-white hover:bg-white/25"
+          >
+            Restart
+          </button>
+          <p className="mt-1 text-xs text-white/60">Or press R</p>
+        </div>
+      )}
       <PhaserMatchView snapshot={snapshot} getSnapshot={getSnapshot} onInput={onInput} />
     </main>
   );

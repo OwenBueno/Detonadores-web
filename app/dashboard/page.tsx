@@ -1,7 +1,10 @@
+import { DashboardPageClient } from "@/src/features/dashboard";
+import { RequireGuestSession } from "@/src/shared/components/RequireGuestSession";
+
 export default function DashboardPage() {
   return (
-    <main className="flex min-h-screen items-center justify-center p-8">
-      <p className="text-zinc-600">Dashboard — placeholder</p>
-    </main>
+    <RequireGuestSession>
+      <DashboardPageClient />
+    </RequireGuestSession>
   );
 }

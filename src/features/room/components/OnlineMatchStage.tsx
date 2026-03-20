@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic";
 import type { MatchSnapshot, PlayerInput } from "@/src/shared/types";
-import { PrototypeOverlay } from "@/src/features/match/PrototypeOverlay";
+import { MatchHud } from "@/src/features/match/components/MatchHud";
 
 const PhaserMatchView = dynamic(
   () =>
@@ -16,12 +16,14 @@ type Props = {
   matchSnapshot: MatchSnapshot | null;
   matchGetSnapshot: () => MatchSnapshot | null;
   matchOnInput: (input: PlayerInput) => void;
+  localMatchPlayerId: string | null;
 };
 
 export function OnlineMatchStage({
   matchSnapshot,
   matchGetSnapshot,
   matchOnInput,
+  localMatchPlayerId,
 }: Props) {
   return (
     <main className="relative flex h-screen w-full flex-col">
@@ -30,7 +32,7 @@ export function OnlineMatchStage({
           Room match — you will return to lobby when the match ends.
         </p>
       </div>
-      <PrototypeOverlay snapshot={matchSnapshot} onRestart={() => {}} />
+      <MatchHud snapshot={matchSnapshot} localPlayerId={localMatchPlayerId} />
       <PhaserMatchView
         snapshot={matchSnapshot}
         getSnapshot={matchGetSnapshot}

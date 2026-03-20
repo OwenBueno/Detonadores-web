@@ -8,7 +8,7 @@ import type {
   ServerEvent,
 } from "@/src/shared/types";
 import { ERROR_CODES } from "@/src/shared/types";
-import { createMatchWsClient, getBackendWebSocketUrl } from "@/src/shared/lib";
+import { createMatchWsClient, getBackendWebSocketUrl, getGuestSession } from "@/src/shared/lib";
 import type { CharacterId } from "@/src/shared/constants/characters";
 import {
   clearSnapshotBuffer,
@@ -26,6 +26,16 @@ import {
   writeResumePayload,
 } from "../lib/resumeMatchStorage";
 import type { RoomSummary } from "../types";
+
+function computeLocalMatchPlayerId(
+  r: RoomStatePayload | null,
+  seatId: string | null
+): string | null {
+  if (!r?.players?.length || !seatId) return null;
+  const idx = r.players.findIndex((p) => p.id === seatId);
+  if (idx < 0) return null;
+  return `player-${idx}`;
+}
 
 export function useOnlineRoomsSession() {
   const client = useMemo(() => createMatchWsClient(), []);
@@ -45,11 +55,20 @@ export function useOnlineRoomsSession() {
   const [matchSnapshot, setMatchSnapshot] = useState<MatchSnapshot | null>(null);
   const [matchEnded, setMatchEnded] = useState(false);
   const [matchWinnerId, setMatchWinnerId] = useState<string | null>(null);
+  const [resultsLocalPlayerId, setResultsLocalPlayerId] = useState<string | null>(null);
   const [starting, setStarting] = useState(false);
   const [matchmakingSearching, setMatchmakingSearching] = useState(false);
   const [resumeReconnecting, setResumeReconnecting] = useState(false);
   const mySeatConnectionIdRef = useRef<string | null>(null);
+  const [mySeatConnectionId, setMySeatConnectionId] = useState<string | null>(null);
   const reconnectAwaitingSnapshotRef = useRef(false);
+
+  const localMatchPlayerId = useMemo(() => {
+    if (!room?.players?.length || !mySeatConnectionId) return null;
+    const idx = room.players.findIndex((p) => p.id === mySeatConnectionId);
+    if (idx < 0) return null;
+    return `player-${idx}`;
+  }, [room, mySeatConnectionId]);
 
   const fetchRooms = useCallback(async () => {
     setLoadingList(true);
@@ -65,7 +84,9 @@ export function useOnlineRoomsSession() {
     let active = true;
     (async () => {
       try {
-        await client.connect(getBackendWebSocketUrl());
+        const session = getGuestSession();
+        if (!session) return;
+        await client.connect(getBackendWebSocketUrl(session.token));
         if (!active) return;
         setConnected(true);
         unsub = client.subscribe((evt: ServerEvent) => {
@@ -75,6 +96,7 @@ export function useOnlineRoomsSession() {
           }
           if (evt.type === "room:identity") {
             mySeatConnectionIdRef.current = evt.payload.connectionId;
+            setMySeatConnectionId(evt.payload.connectionId);
           }
           if (evt.type === "room:state") {
             setMatchmakingSearching(false);
@@ -113,11 +135,26 @@ export function useOnlineRoomsSession() {
             if (evt.payload.status === "ended") {
               setMatchEnded(true);
               setMatchWinnerId(evt.payload.winnerId ?? null);
+              setResultsLocalPlayerId((prev) =>
+                prev ??
+                computeLocalMatchPlayerId(
+                  roomRef.current,
+                  mySeatConnectionIdRef.current
+                )
+              );
+              clearResumePayload();
             }
           }
           if (evt.type === "match:ended") {
             setMatchEnded(true);
             setMatchWinnerId(evt.payload.winnerId ?? null);
+            setResultsLocalPlayerId((prev) =>
+              prev ??
+              computeLocalMatchPlayerId(
+                roomRef.current,
+                mySeatConnectionIdRef.current
+              )
+            );
             clearResumePayload();
           }
           if (evt.type === "room:closed") {
@@ -127,6 +164,7 @@ export function useOnlineRoomsSession() {
             clearSnapshotBuffer();
             setError(null);
             mySeatConnectionIdRef.current = null;
+            setMySeatConnectionId(null);
             clearResumePayload();
             fetchRooms();
           }
@@ -272,12 +310,14 @@ export function useOnlineRoomsSession() {
     [matchEnded]
   );
 
-  const onBackToRooms = useCallback(() => {
+  const leaveMatchResults = useCallback(() => {
     setInMatch(false);
     setMatchSnapshot(null);
     setMatchEnded(false);
     setMatchWinnerId(null);
+    setResultsLocalPlayerId(null);
     setRoom(null);
+    setStarting(false);
     clearSnapshotBuffer();
     setError(null);
     fetchRooms();
@@ -313,7 +353,10 @@ export function useOnlineRoomsSession() {
     onStartMatch,
     matchGetSnapshot,
     matchOnInput,
-    onBackToRooms,
+    leaveMatchResults,
+    onBackToRooms: leaveMatchResults,
     takenCharacterIds,
+    localMatchPlayerId,
+    resultsLocalPlayerId,
   };
 }

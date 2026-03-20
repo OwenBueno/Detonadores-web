@@ -1,0 +1,1 @@
+export { DashboardPageClient } from "./DashboardPageClient";

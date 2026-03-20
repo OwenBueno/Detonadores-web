@@ -1,6 +1,7 @@
 "use client";
 
 import type { MatchSnapshot } from "../../shared/types";
+import { SUDDEN_DEATH_START_TICK } from "./constants";
 
 export interface PrototypeOverlayProps {
   snapshot: MatchSnapshot | null;
@@ -17,7 +18,7 @@ export function PrototypeOverlay({ snapshot, onRestart }: PrototypeOverlayProps)
     >
       <div>Status: {snapshot.status}</div>
       <div>Tick: {snapshot.tick}</div>
-      {snapshot.tick >= 3600 && (
+      {snapshot.tick >= SUDDEN_DEATH_START_TICK && (
         <div className="text-amber-400">Sudden death</div>
       )}
       {p0 != null && (

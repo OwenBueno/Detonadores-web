@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ClientEvent, MatchSnapshot, PlayerInput, ServerEvent } from "../../../shared/types";
-import { createMatchWsClient } from "../../../shared/lib";
+import { createMatchWsClient, getBackendWebSocketUrl, getGuestSession } from "../../../shared/lib";
 import {
   clearSnapshotBuffer,
   getDisplaySnapshot,
@@ -39,9 +39,9 @@ export function useOnlineMatch(): {
     let active = true;
     (async () => {
       try {
-        const port = Number(process.env.NEXT_PUBLIC_BACKEND_PORT ?? 3001);
-        const url = `ws://localhost:${port}/ws`;
-        await client.connect(url);
+        const session = getGuestSession();
+        if (!session) return;
+        await client.connect(getBackendWebSocketUrl(session.token));
         if (!active) return;
         setConnected(true);
         unsub = client.subscribe((evt: ServerEvent) => {

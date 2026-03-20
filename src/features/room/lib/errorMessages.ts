@@ -16,6 +16,8 @@ export function errorMessageFromCode(code: string, message?: string): string {
       return message ?? "Could not reconnect to the match";
     case ERROR_CODES.RECONNECT_SEAT_TAKEN:
       return message ?? "This match seat is already in use";
+    case ERROR_CODES.UNAUTHORIZED:
+      return message ?? "Session invalid or expired — sign in again";
     default:
       return message ?? code ?? "Unknown error";
   }

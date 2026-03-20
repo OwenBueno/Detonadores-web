@@ -51,7 +51,7 @@ flowchart LR
 |----------------|-------------|
 | **UI rendering** | Next.js/React for app shell; Phaser for in-match view (tilemap, players, bombs, explosions). |
 | **Input capture** | Keyboard/gamepad in Phaser or React; events sent as `match:input` / `match:place_bomb` via WebSocket. |
-| **WebSocket communication** | Single client adapter; reconnection and event routing in app shell or a dedicated service. |
+| **WebSocket communication** | Single client adapter; connect with **`?token=`** from guest session (US-028). Session from **`POST /session/guest`** stored in `localStorage`; protected routes use `RequireGuestSession`. |
 | **Interpolation** | Client-side smoothing of positions/state between server snapshots for display only; authoritative state remains server-side. |
 
 ---

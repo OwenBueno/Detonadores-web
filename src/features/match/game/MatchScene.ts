@@ -70,7 +70,8 @@ export function getMatchSceneConfig(): MatchSceneConfig {
         if (entry) {
           entry.targetX = p.x * TILE_SIZE + half;
           entry.targetY = p.y * TILE_SIZE + half;
-          entry.g.setVisible(p.alive);
+          entry.g.setVisible(true);
+          entry.g.setAlpha(p.alive ? 1 : 0.55);
         }
       }
       const LERP = 0.2;
@@ -190,18 +191,32 @@ function drawPlayers(scene: Phaser.Scene, state: SceneState) {
       const targetX = p.x * TILE_SIZE + half;
       const targetY = p.y * TILE_SIZE + half;
       g.setPosition(targetX, targetY);
-      g.fillStyle(0x48bb78, 1);
-      g.fillCircle(0, 0, 14);
+      g.setAlpha(p.alive ? 1 : 0.55);
+      if (p.alive) {
+        g.fillStyle(0x48bb78, 1);
+        g.fillCircle(0, 0, 14);
+      } else {
+        g.fillStyle(0x4a5568, 0.95);
+        g.fillCircle(0, 0, 14);
+        g.lineStyle(2, 0xe53e3e, 0.9);
+        g.strokeCircle(0, 0, 14);
+      }
       state.playerSprites.set(p.id, { g, targetX, targetY });
       entry = state.playerSprites.get(p.id)!;
     }
     entry.targetX = p.x * TILE_SIZE + half;
     entry.targetY = p.y * TILE_SIZE + half;
-    entry.g.setVisible(p.alive);
+    entry.g.setVisible(true);
+    entry.g.setAlpha(p.alive ? 1 : 0.55);
+    entry.g.clear();
     if (p.alive) {
-      entry.g.clear();
       entry.g.fillStyle(0x48bb78, 1);
       entry.g.fillCircle(0, 0, 14);
+    } else {
+      entry.g.fillStyle(0x4a5568, 0.95);
+      entry.g.fillCircle(0, 0, 14);
+      entry.g.lineStyle(2, 0xe53e3e, 0.9);
+      entry.g.strokeCircle(0, 0, 14);
     }
   }
   for (const id of Array.from(state.playerSprites.keys())) {
