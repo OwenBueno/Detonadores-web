@@ -48,13 +48,32 @@ export function getMatchSceneConfig(): MatchSceneConfig {
       const state = (this as unknown as { _state: SceneState })._state;
       const snapshot = state.getSnapshot();
       if (!snapshot) return;
+      if (snapshot.status === "ended") {
+        // Draw final state once, then keep scene visually frozen.
+        if (snapshot.tick !== state.lastSnapshotTick) {
+          state.lastSnapshotTick = snapshot.tick;
+          drawGrid(this, state);
+          drawBombsAndExplosions(this, state);
+          drawPlayers(this, state);
+        }
+        return;
+      }
       if (snapshot.tick !== state.lastSnapshotTick) {
         state.lastSnapshotTick = snapshot.tick;
         drawGrid(this, state);
         drawBombsAndExplosions(this, state);
         drawPlayers(this, state);
       }
-      const LERP = 0.15;
+      const half = TILE_SIZE / 2;
+      for (const p of snapshot.players ?? []) {
+        const entry = state.playerSprites.get(p.id);
+        if (entry) {
+          entry.targetX = p.x * TILE_SIZE + half;
+          entry.targetY = p.y * TILE_SIZE + half;
+          entry.g.setVisible(p.alive);
+        }
+      }
+      const LERP = 0.2;
       for (const [, { g, targetX, targetY }] of state.playerSprites) {
         const dx = targetX - g.x;
         const dy = targetY - g.y;

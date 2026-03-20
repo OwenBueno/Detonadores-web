@@ -18,6 +18,7 @@ export type {
   RoomCreatePayload,
   RoomJoinPayload,
   RoomReadyPayload,
+  RoomSelectCharacterPayload,
   MatchInputPayload,
   MatchPlaceBombPayload,
   MatchmakingJoinPayload,

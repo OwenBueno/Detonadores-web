@@ -7,23 +7,26 @@ import { getMatchSceneConfig } from "./MatchScene";
 
 export interface PhaserMatchViewProps {
   snapshot: MatchSnapshot | null;
+  getSnapshot?: () => MatchSnapshot | null;
   onInput?: (input: PlayerInput) => void;
 }
 
-export function PhaserMatchView({ snapshot, onInput }: PhaserMatchViewProps) {
+export function PhaserMatchView({ snapshot, getSnapshot: getSnapshotProp, onInput }: PhaserMatchViewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const snapshotRef = useRef<MatchSnapshot | null>(null);
+  const getSnapshotRef = useRef<() => MatchSnapshot | null>(() => null);
   const onInputRef = useRef<(input: PlayerInput) => void>(() => {});
   const gameRef = useRef<Phaser.Game | null>(null);
 
   snapshotRef.current = snapshot;
+  getSnapshotRef.current = getSnapshotProp ?? (() => snapshotRef.current);
   onInputRef.current = onInput ?? (() => {});
 
   useEffect(() => {
     const parent = containerRef.current;
     if (!parent) return;
 
-    const getSnapshot = () => snapshotRef.current;
+    const getSnapshot = () => getSnapshotRef.current?.() ?? null;
     const onInputCallback = (input: PlayerInput) => onInputRef.current(input);
 
     const config: Phaser.Types.Core.GameConfig = {

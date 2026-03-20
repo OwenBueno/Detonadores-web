@@ -63,6 +63,8 @@ flowchart LR
 - Client sends only **input events**; no duplicate game logic on the client.
 - Match state flows: Server → WebSocket → App shell → Phaser (render). Input flows: Phaser/React → App shell → WebSocket → Server.
 
+**Interpolation and reconciliation (US-017):** In online mode the client buffers the last two snapshots with receive timestamps. Player positions are interpolated between the two snapshots using time-based alpha; grid, bombs, explosions, powerups, and alive/death come from the latest snapshot so they stay authoritative and readable. If the interpolated position deviates from the latest authority by more than 0.5 tiles, the display snaps to authority. Extrapolation is not used (alpha is capped at 1) so the client never shows state ahead of the server. Reconciliation happens within one frame when over threshold; impossible states are not shown for more than a short window.
+
 ---
 
 ## 5. Dependency rule
