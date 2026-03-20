@@ -8,8 +8,14 @@ import {
   useOnlineMatch,
 } from "../../src/features/match";
 
+function readLocalPlayerIdFromUrl(): string | null {
+  if (typeof window === "undefined") return null;
+  return new URLSearchParams(window.location.search).get("localPlayerId");
+}
+
 export default function MatchPageClient() {
   const [mode, setMode] = useState<"offline" | "online">("offline");
+  const [onlineLocalPlayerId] = useState<string | null>(readLocalPlayerIdFromUrl);
   const offline = useOfflineEngine();
   const online = useOnlineMatch();
   const snapshot = mode === "online" ? online.snapshot : offline.snapshot;
@@ -62,7 +68,7 @@ export default function MatchPageClient() {
       </div>
       <MatchHud
         snapshot={snapshot}
-        localPlayerId={mode === "offline" ? "player-0" : null}
+        localPlayerId={mode === "offline" ? "player-0" : onlineLocalPlayerId}
       />
       {mode === "offline" && (
         <div className="absolute left-3 top-14 z-10">

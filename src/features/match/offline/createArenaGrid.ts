@@ -6,6 +6,7 @@ import {
   isSpawnZone,
 } from "./constants";
 
+/** Mirror Detonadores-back/src/domain/arena/createArenaGrid.ts — see docs/mvp-arena.md */
 function cellType(x: number, y: number): "floor" | "hard_block" | "soft_block" {
   if (isSpawnZone(x, y)) return "floor";
   if (isBorder(x, y)) return "hard_block";

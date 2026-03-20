@@ -4,6 +4,9 @@ export const TICKS_PER_SECOND = 1000 / TICK_INTERVAL_MS;
 export const ARENA_WIDTH = 13;
 export const ARENA_HEIGHT = 11;
 
+/** Pixel size of one grid cell in Phaser; keep in sync with match rendering. */
+export const MATCH_TILE_PX = 48;
+
 export const SPAWN_POSITIONS: ReadonlyArray<{ x: number; y: number }> = [
   { x: 1, y: 1 },
   { x: 11, y: 1 },

@@ -38,7 +38,11 @@ export function useOfflineEngine(): {
     const engine = new MatchEngine();
     engineRef.current = engine;
     const { grid, initialPlayers } = createArena(2);
-    engine.startMatch(grid, initialPlayers);
+    const withCosmetics = initialPlayers.map((pl, i) => ({
+      ...pl,
+      characterId: i === 0 ? "char_1" : "char_2",
+    }));
+    engine.startMatch(grid, withCosmetics);
     setSnapshot(engine.getSnapshot());
     startTickLoop();
   }, [startTickLoop]);
@@ -47,7 +51,11 @@ export function useOfflineEngine(): {
     const engine = new MatchEngine();
     engineRef.current = engine;
     const { grid, initialPlayers } = createArena(2);
-    engine.startMatch(grid, initialPlayers);
+    const withCosmetics = initialPlayers.map((pl, i) => ({
+      ...pl,
+      characterId: i === 0 ? "char_1" : "char_2",
+    }));
+    engine.startMatch(grid, withCosmetics);
     setSnapshot(engine.getSnapshot());
     startTickLoop();
     return () => {

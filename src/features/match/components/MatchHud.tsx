@@ -2,6 +2,12 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { MatchSnapshot, PlayerState } from "@/src/shared/types";
+import {
+  isSfxMuted,
+  playMatchSfx,
+  primeSfxContext,
+  setSfxMuted,
+} from "../audio/matchFeedbackSfx";
 import { SUDDEN_DEATH_START_TICK } from "../constants";
 
 export interface MatchHudProps {
@@ -10,16 +16,31 @@ export interface MatchHudProps {
   className?: string;
 }
 
-type Toast = { id: string; message: string };
+type Toast = { id: string; message: string; variant: "pickup" | "death" };
 
 export function MatchHud({ snapshot, localPlayerId, className = "" }: MatchHudProps) {
   const [toasts, setToasts] = useState<Toast[]>([]);
+  const [sfxMuted, setSfxMutedState] = useState(() =>
+    typeof window !== "undefined" ? isSfxMuted() : false
+  );
   const prevRef = useRef<{ tick: number; p: PlayerState | null }>({ tick: -1, p: null });
+  const endedSfxRef = useRef(false);
 
   const me =
     snapshot && localPlayerId
       ? snapshot.players.find((p) => p.id === localPlayerId) ?? null
       : null;
+
+  useEffect(() => {
+    if (!snapshot) return;
+    if (snapshot.status === "ended" && !endedSfxRef.current) {
+      endedSfxRef.current = true;
+      playMatchSfx("match_end");
+    }
+    if (snapshot.status !== "ended") {
+      endedSfxRef.current = false;
+    }
+  }, [snapshot?.status]);
 
   useEffect(() => {
     if (!snapshot || !localPlayerId) {
@@ -44,6 +65,15 @@ export function MatchHud({ snapshot, localPlayerId, className = "" }: MatchHudPr
     }
 
     if (snapshot.status === "active" && prev.p) {
+      if (prev.p.alive && !player.alive) {
+        playMatchSfx("death");
+        const id = `${snapshot.tick}-death-${Math.random().toString(36).slice(2, 8)}`;
+        setToasts((t) => [...t, { id, message: "Eliminated", variant: "death" }]);
+        window.setTimeout(() => {
+          setToasts((t) => t.filter((x) => x.id !== id));
+        }, 3200);
+      }
+
       const messages: string[] = [];
       if (player.bombs > prev.p.bombs) messages.push("+1 bomb");
       if (player.range > prev.p.range) messages.push("Range up");
@@ -53,8 +83,9 @@ export function MatchHud({ snapshot, localPlayerId, className = "" }: MatchHudPr
       if (player.shieldActive && !prev.p.shieldActive) messages.push("Shield on");
 
       for (const message of messages) {
+        playMatchSfx("pickup");
         const id = `${snapshot.tick}-${message}-${Math.random().toString(36).slice(2, 8)}`;
-        setToasts((t) => [...t, { id, message }]);
+        setToasts((t) => [...t, { id, message, variant: "pickup" }]);
         window.setTimeout(() => {
           setToasts((t) => t.filter((x) => x.id !== id));
         }, 2600);
@@ -73,8 +104,47 @@ export function MatchHud({ snapshot, localPlayerId, className = "" }: MatchHudPr
       ? "You are reconnecting — input may be delayed."
       : null;
 
+  const toggleSfxMute = () => {
+    primeSfxContext();
+    const next = !isSfxMuted();
+    setSfxMuted(next);
+    setSfxMutedState(next);
+  };
+
   return (
     <>
+      <div className="absolute right-3 top-14 z-[40]">
+        <button
+          type="button"
+          onClick={toggleSfxMute}
+          className="rounded border border-zinc-500/80 bg-zinc-900/90 px-2 py-1 text-xs font-medium text-zinc-200 shadow-md hover:bg-zinc-800"
+          aria-pressed={sfxMuted}
+        >
+          {sfxMuted ? "Unmute SFX" : "Mute SFX"}
+        </button>
+      </div>
+
+      {snapshot.status === "ended" && (
+        <div
+          className="pointer-events-none fixed inset-0 z-[35] flex items-center justify-center bg-black/50 p-6"
+          role="alert"
+          aria-live="assertive"
+        >
+          <div className="pointer-events-auto max-w-md rounded-xl border-2 border-amber-600/80 bg-zinc-950 px-8 py-7 text-center shadow-2xl ring-1 ring-amber-500/30">
+            <h2 className="text-xl font-bold tracking-tight text-amber-100">Match over</h2>
+            <p className="mt-3 text-base text-zinc-200">
+              {snapshot.winnerId ? (
+                <>
+                  Winner: <span className="font-mono text-amber-200">{snapshot.winnerId}</span>
+                </>
+              ) : (
+                "Draw — no winner"
+              )}
+            </p>
+          </div>
+        </div>
+      )}
+
       {suddenDeath && (
         <div
           className="pointer-events-none absolute left-0 right-0 top-0 z-20 bg-amber-500/95 py-2 text-center text-sm font-semibold text-amber-950 shadow-md"
@@ -120,8 +190,13 @@ export function MatchHud({ snapshot, localPlayerId, className = "" }: MatchHudPr
                 </span>
               </p>
             </div>
-          ) : (
+          ) : localPlayerId ? (
             <p className="text-sm text-zinc-400">Waiting for player slot…</p>
+          ) : (
+            <p className="text-sm text-zinc-400">
+              Online: use <span className="font-mono">?localPlayerId=player-0</span> for stats and pickup
+              toasts.
+            </p>
           )}
         </div>
         {localReconnect && (
@@ -142,7 +217,11 @@ export function MatchHud({ snapshot, localPlayerId, className = "" }: MatchHudPr
         {toasts.map((t) => (
           <div
             key={t.id}
-            className="rounded-md bg-emerald-600/95 px-3 py-1.5 text-center text-sm font-medium text-white shadow-lg"
+            className={
+              t.variant === "death"
+                ? "rounded-md bg-red-900/95 px-3 py-1.5 text-center text-sm font-medium text-red-50 shadow-lg ring-1 ring-red-500/40"
+                : "rounded-md bg-emerald-600/95 px-3 py-1.5 text-center text-sm font-medium text-white shadow-lg"
+            }
           >
             {t.message}
           </div>

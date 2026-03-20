@@ -24,3 +24,239 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* US-035 — shared CSS “pixel doll” characters (lobby + Phaser DOMElement). No raster sprites. */
+.detonadores-char {
+  position: relative;
+  display: inline-block;
+  flex-shrink: 0;
+  vertical-align: middle;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  transform: translateZ(0);
+  pointer-events: none;
+}
+
+.detonadores-char--interactive {
+  pointer-events: auto;
+}
+
+.detonadores-char__inner {
+  position: relative;
+  width: 32px;
+  height: 40px;
+  transform-origin: 50% 100%;
+}
+
+.detonadores-char--md {
+  transform: translateZ(0) scale(1);
+  transform-origin: 50% 100%;
+}
+
+.detonadores-char--sm {
+  transform: translateZ(0) scale(0.75);
+  transform-origin: 50% 100%;
+}
+
+.detonadores-char--match {
+  transform: translateZ(0) scale(1.15);
+  transform-origin: 50% 100%;
+}
+
+.detonadores-char--anim .detonadores-char__inner {
+  animation: detonadores-char-idle 1.15s ease-in-out infinite;
+}
+
+.detonadores-char--dead .detonadores-char__inner {
+  animation: none;
+}
+
+.detonadores-char--dead {
+  opacity: 0.55;
+  filter: grayscale(0.9) brightness(0.92);
+}
+
+@keyframes detonadores-char-idle {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-3px);
+  }
+}
+
+.detonadores-char__top {
+  position: absolute;
+  left: 5px;
+  top: 0;
+  width: 22px;
+  height: 7px;
+  background: var(--char-hair, var(--char-accent));
+  box-shadow: inset 0 -1px 0 var(--char-stroke);
+}
+
+.detonadores-char__head {
+  position: absolute;
+  left: 7px;
+  top: 6px;
+  width: 18px;
+  height: 14px;
+  background: var(--char-skin);
+  box-shadow:
+    inset 0 0 0 2px var(--char-stroke),
+    inset -2px -2px 0 rgb(0 0 0 / 12%);
+}
+
+.detonadores-char__eyes {
+  position: absolute;
+  left: 10px;
+  top: 10px;
+  width: 4px;
+  height: 3px;
+  background: var(--char-stroke);
+  box-shadow: 8px 0 0 var(--char-stroke);
+  animation: detonadores-char-blink 3.8s step-end infinite;
+}
+
+.detonadores-char--dead .detonadores-char__eyes {
+  animation: none;
+  opacity: 0.35;
+}
+
+@keyframes detonadores-char-blink {
+  0%,
+  90%,
+  100% {
+    opacity: 1;
+  }
+  92%,
+  96% {
+    opacity: 0.08;
+  }
+}
+
+.detonadores-char__torso {
+  position: absolute;
+  left: 6px;
+  top: 19px;
+  width: 20px;
+  height: 14px;
+  background: var(--char-shirt);
+  box-shadow: inset 0 0 0 2px var(--char-stroke);
+}
+
+.detonadores-char__accent {
+  position: absolute;
+  background: var(--char-accent);
+  box-shadow: inset 0 0 0 1px var(--char-stroke);
+}
+
+.detonadores-char__legs {
+  position: absolute;
+  left: 9px;
+  top: 32px;
+  width: 6px;
+  height: 8px;
+  background: var(--char-legs);
+  box-shadow:
+    inset 0 0 0 1px var(--char-stroke),
+    8px 0 0 0 var(--char-legs);
+}
+
+.detonadores-char[data-character-id="char_1"] {
+  --char-skin: #ed8936;
+  --char-stroke: #1a120c;
+  --char-shirt: #9c4221;
+  --char-legs: #2c1810;
+  --char-accent: #f6ad55;
+  --char-hair: #c05621;
+}
+
+.detonadores-char[data-character-id="char_1"] .detonadores-char__top {
+  left: 4px;
+  width: 24px;
+  height: 8px;
+  border-radius: 1px 1px 0 0;
+}
+
+.detonadores-char[data-character-id="char_1"] .detonadores-char__accent {
+  left: 22px;
+  top: 4px;
+  width: 6px;
+  height: 6px;
+  border-radius: 1px;
+}
+
+.detonadores-char[data-character-id="char_2"] {
+  --char-skin: #ecc94b;
+  --char-stroke: #1a120c;
+  --char-shirt: #4299e1;
+  --char-legs: #2b6cb0;
+  --char-accent: #2b6cb0;
+  --char-hair: #b7791f;
+}
+
+.detonadores-char[data-character-id="char_2"] .detonadores-char__top {
+  left: 6px;
+  width: 20px;
+  height: 5px;
+  background: var(--char-shirt);
+}
+
+.detonadores-char[data-character-id="char_2"] .detonadores-char__accent {
+  left: 7px;
+  top: 2px;
+  width: 18px;
+  height: 4px;
+  background: var(--char-accent);
+}
+
+.detonadores-char[data-character-id="char_3"] {
+  --char-skin: #fbb6ce;
+  --char-stroke: #1a120c;
+  --char-shirt: #d53f8c;
+  --char-legs: #702459;
+  --char-accent: #d53f8c;
+  --char-hair: #b83280;
+}
+
+.detonadores-char[data-character-id="char_3"] .detonadores-char__top {
+  left: 5px;
+  width: 22px;
+  height: 9px;
+  background: var(--char-hair);
+}
+
+.detonadores-char[data-character-id="char_3"] .detonadores-char__accent {
+  left: 1px;
+  top: 10px;
+  width: 5px;
+  height: 10px;
+  background: var(--char-hair);
+}
+
+.detonadores-char[data-character-id="char_4"] {
+  --char-skin: #e2d5b8;
+  --char-stroke: #1a120c;
+  --char-shirt: #744210;
+  --char-legs: #3d2c0a;
+  --char-accent: #d69e2e;
+  --char-hair: #5c4d3d;
+}
+
+.detonadores-char[data-character-id="char_4"] .detonadores-char__top {
+  left: 3px;
+  width: 26px;
+  height: 4px;
+  background: var(--char-accent);
+}
+
+.detonadores-char[data-character-id="char_4"] .detonadores-char__accent {
+  left: 4px;
+  top: 0;
+  width: 24px;
+  height: 3px;
+  background: var(--char-accent);
+  box-shadow: 0 3px 0 var(--char-stroke);
+}

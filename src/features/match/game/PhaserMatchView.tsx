@@ -3,7 +3,9 @@
 import * as Phaser from "phaser";
 import { useEffect, useRef } from "react";
 import type { MatchSnapshot, PlayerInput } from "../../../shared/types";
+import { ARENA_HEIGHT, ARENA_WIDTH, MATCH_TILE_PX } from "../offline/constants";
 import { getMatchSceneConfig } from "./MatchScene";
+import { ARENA_SCENE_BACKGROUND } from "./vecindadArenaTheme";
 
 export interface PhaserMatchViewProps {
   snapshot: MatchSnapshot | null;
@@ -31,10 +33,13 @@ export function PhaserMatchView({ snapshot, getSnapshot: getSnapshotProp, onInpu
 
     const config: Phaser.Types.Core.GameConfig = {
       type: Phaser.AUTO,
-      width: 13 * 48,
-      height: 11 * 48,
+      width: ARENA_WIDTH * MATCH_TILE_PX,
+      height: ARENA_HEIGHT * MATCH_TILE_PX,
       parent,
-      backgroundColor: "#1a202c",
+      backgroundColor: ARENA_SCENE_BACKGROUND,
+      dom: {
+        createContainer: true,
+      },
       scale: {
         mode: Phaser.Scale.FIT,
         autoCenter: Phaser.Scale.CENTER_BOTH,

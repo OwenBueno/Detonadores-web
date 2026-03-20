@@ -18,6 +18,8 @@ export interface PlayerState {
   speed?: number;
   shieldActive?: boolean;
   reconnectPending?: boolean;
+  /** Cosmetic only (US-033); engine ignores for rules. */
+  characterId?: string;
 }
 
 export interface BombState {

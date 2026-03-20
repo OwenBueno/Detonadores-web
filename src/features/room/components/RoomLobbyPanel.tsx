@@ -2,8 +2,10 @@ import type { RoomStatePayload } from "@/src/shared/types";
 import {
   CHARACTER_IDS,
   CHARACTER_LABELS,
+  CHARACTER_TAGLINES,
   type CharacterId,
 } from "@/src/shared/constants/characters";
+import { CharacterSprite } from "@/src/shared/ui/CharacterSprite";
 import { MAX_PLAYERS } from "../constants";
 
 type Props = {
@@ -93,11 +95,18 @@ export function RoomLobbyPanel({
               <button
                 key={id}
                 type="button"
+                title={CHARACTER_TAGLINES[id]}
                 onClick={() => onSelectCharacter(id)}
                 disabled={!connected || taken}
-                className="rounded border border-zinc-600 bg-zinc-700 px-3 py-1.5 text-xs font-medium hover:bg-zinc-600 disabled:cursor-not-allowed disabled:opacity-50 disabled:line-through"
+                className="flex items-center gap-2 rounded border border-zinc-600 bg-zinc-700 px-3 py-1.5 text-xs font-medium hover:bg-zinc-600 disabled:cursor-not-allowed disabled:opacity-50 disabled:line-through"
               >
-                {CHARACTER_LABELS[id]}
+                <CharacterSprite id={id} size="sm" animate className="shrink-0" />
+                <span className="text-left leading-tight">
+                  {CHARACTER_LABELS[id]}
+                  <span className="mt-0.5 block max-w-[10rem] text-[10px] font-normal text-zinc-400">
+                    {CHARACTER_TAGLINES[id]}
+                  </span>
+                </span>
               </button>
             );
           })}
