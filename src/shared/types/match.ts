@@ -17,6 +17,7 @@ export interface PlayerState {
   range: number;
   speed?: number;
   shieldActive?: boolean;
+  reconnectPending?: boolean;
 }
 
 export interface BombState {

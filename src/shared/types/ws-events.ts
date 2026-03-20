@@ -8,14 +8,18 @@ export type ClientEventType =
   | "room:start_match"
   | "match:input"
   | "match:place_bomb"
-  | "matchmaking:join";
+  | "match:reconnect"
+  | "matchmaking:join"
+  | "matchmaking:leave";
 
 export type ServerEventType =
   | "room:state"
+  | "room:identity"
   | "room:closed"
   | "match:snapshot"
   | "match:event"
   | "match:ended"
+  | "matchmaking:status"
   | "error";
 
 export interface RoomCreatePayload {
@@ -45,8 +49,23 @@ export interface MatchPlaceBombPayload {
   // empty
 }
 
+export interface MatchReconnectPayload {
+  roomId: string;
+  seatConnectionId: string;
+}
+
+export interface RoomIdentityPayload {
+  connectionId: string;
+}
+
 export interface MatchmakingJoinPayload {
   preferredRole?: string;
+}
+
+export type MatchmakingLeavePayload = Record<string, never>;
+
+export interface MatchmakingStatusPayload {
+  status: "idle" | "queued";
 }
 
 export type ClientEvent =
@@ -57,7 +76,9 @@ export type ClientEvent =
   | { type: "room:start_match"; payload: RoomStartMatchPayload }
   | { type: "match:input"; payload: MatchInputPayload }
   | { type: "match:place_bomb"; payload: MatchPlaceBombPayload }
-  | { type: "matchmaking:join"; payload: MatchmakingJoinPayload };
+  | { type: "match:reconnect"; payload: MatchReconnectPayload }
+  | { type: "matchmaking:join"; payload: MatchmakingJoinPayload }
+  | { type: "matchmaking:leave"; payload: MatchmakingLeavePayload };
 
 export interface RoomPlayer {
   id: string;
@@ -93,6 +114,8 @@ export const ERROR_CODES = {
   MIN_PLAYERS_NOT_MET: "MIN_PLAYERS_NOT_MET",
   NOT_ALL_READY: "NOT_ALL_READY",
   ROOM_NOT_WAITING: "ROOM_NOT_WAITING",
+  RECONNECT_FAILED: "RECONNECT_FAILED",
+  RECONNECT_SEAT_TAKEN: "RECONNECT_SEAT_TAKEN",
 } as const;
 
 export type ErrorCode = (typeof ERROR_CODES)[keyof typeof ERROR_CODES];
@@ -104,10 +127,12 @@ export interface ErrorPayload {
 
 export type ServerEvent =
   | { type: "room:state"; payload: RoomStatePayload }
+  | { type: "room:identity"; payload: RoomIdentityPayload }
   | { type: "room:closed"; payload: { roomId: string } }
   | { type: "match:snapshot"; payload: MatchSnapshot }
   | { type: "match:event"; payload: MatchEventPayload }
   | { type: "match:ended"; payload: MatchEndedPayload }
+  | { type: "matchmaking:status"; payload: MatchmakingStatusPayload }
   | { type: "error"; payload: ErrorPayload };
 
 export interface MatchSnapshotEvent {

@@ -34,6 +34,7 @@ const PhaserMatchView = dynamic(
 
 const MAX_PLAYERS = 4;
 const MIN_PLAYERS_TO_START = 2;
+const RESUME_STORAGE_KEY = "detonadores:resumeMatch";
 
 function toClientEvent(input: PlayerInput): ClientEvent {
   if (input === "place_bomb") return { type: "match:place_bomb", payload: {} };
@@ -42,6 +43,8 @@ function toClientEvent(input: PlayerInput): ClientEvent {
 
 function errorMessageFromCode(code: string, message?: string): string {
   switch (code) {
+    case ERROR_CODES.INVALID_ROOM_JOIN:
+      return message ?? "Cannot join matchmaking from here (leave your room first)";
     case ERROR_CODES.CHARACTER_TAKEN:
       return "That character is already taken";
     case ERROR_CODES.NOT_ALL_READY:
@@ -50,6 +53,10 @@ function errorMessageFromCode(code: string, message?: string): string {
       return "Minimum players to start not met";
     case ERROR_CODES.ROOM_NOT_WAITING:
       return "Room is not waiting to start";
+    case ERROR_CODES.RECONNECT_FAILED:
+      return message ?? "Could not reconnect to the match";
+    case ERROR_CODES.RECONNECT_SEAT_TAKEN:
+      return message ?? "This match seat is already in use";
     default:
       return message ?? code ?? "Unknown error";
   }
@@ -87,6 +94,11 @@ export default function RoomsPage() {
   const [matchEnded, setMatchEnded] = useState(false);
   const [matchWinnerId, setMatchWinnerId] = useState<string | null>(null);
   const [starting, setStarting] = useState(false);
+  const [matchmakingSearching, setMatchmakingSearching] = useState(false);
+  const [resumeReconnecting, setResumeReconnecting] = useState(false);
+  const mySeatConnectionIdRef = useRef<string | null>(null);
+  const reconnectAwaitingSnapshotRef = useRef(false);
+  const reconnectFromStorageRef = useRef(false);
 
   const fetchRooms = useCallback(async () => {
     setLoadingList(true);
@@ -112,19 +124,58 @@ export default function RoomsPage() {
         if (!active) return;
         setConnected(true);
         unsub = client.subscribe((evt: ServerEvent) => {
+          if (evt.type === "matchmaking:status") {
+            setMatchmakingSearching(evt.payload.status === "queued");
+            if (evt.payload.status === "idle") setError(null);
+          }
+          if (evt.type === "room:identity") {
+            mySeatConnectionIdRef.current = evt.payload.connectionId;
+          }
           if (evt.type === "room:state") {
+            setMatchmakingSearching(false);
             setRoom(evt.payload);
             setError(null);
             setCreating(false);
             setJoining(false);
-            if (evt.payload.status === "in_game") setStarting(false);
+            if (evt.payload.status === "in_game") {
+              setStarting(false);
+              if (
+                typeof sessionStorage !== "undefined" &&
+                mySeatConnectionIdRef.current
+              ) {
+                sessionStorage.setItem(
+                  RESUME_STORAGE_KEY,
+                  JSON.stringify({
+                    roomId: evt.payload.roomId,
+                    seatConnectionId: mySeatConnectionIdRef.current,
+                  })
+                );
+              }
+            }
           }
           if (evt.type === "match:snapshot") {
-            if (!roomRef.current) return;
+            if (!roomRef.current && !reconnectAwaitingSnapshotRef.current) return;
+            reconnectAwaitingSnapshotRef.current = false;
+            reconnectFromStorageRef.current = false;
+            setResumeReconnecting(false);
             pushSnapshot(evt.payload);
             setMatchSnapshot(getLatestSnapshot());
             setInMatch(true);
             setStarting(false);
+            const r = roomRef.current;
+            if (
+              typeof sessionStorage !== "undefined" &&
+              r?.status === "in_game" &&
+              mySeatConnectionIdRef.current
+            ) {
+              sessionStorage.setItem(
+                RESUME_STORAGE_KEY,
+                JSON.stringify({
+                  roomId: r.roomId,
+                  seatConnectionId: mySeatConnectionIdRef.current,
+                })
+              );
+            }
             if (evt.payload.status === "ended") {
               setMatchEnded(true);
               setMatchWinnerId(evt.payload.winnerId ?? null);
@@ -133,21 +184,75 @@ export default function RoomsPage() {
           if (evt.type === "match:ended") {
             setMatchEnded(true);
             setMatchWinnerId(evt.payload.winnerId ?? null);
+            if (typeof sessionStorage !== "undefined") {
+              sessionStorage.removeItem(RESUME_STORAGE_KEY);
+            }
           }
           if (evt.type === "room:closed") {
             setRoom(null);
+            setMatchmakingSearching(false);
             setMatchSnapshot(null);
             clearSnapshotBuffer();
             setError(null);
+            mySeatConnectionIdRef.current = null;
+            if (typeof sessionStorage !== "undefined") {
+              sessionStorage.removeItem(RESUME_STORAGE_KEY);
+            }
             fetchRooms();
           }
           if (evt.type === "error") {
-            setError(errorMessageFromCode(evt.payload.code, evt.payload.message));
+            const code = evt.payload.code;
+            if (
+              code === ERROR_CODES.RECONNECT_FAILED ||
+              code === ERROR_CODES.RECONNECT_SEAT_TAKEN
+            ) {
+              reconnectAwaitingSnapshotRef.current = false;
+              setResumeReconnecting(false);
+              if (typeof sessionStorage !== "undefined") {
+                sessionStorage.removeItem(RESUME_STORAGE_KEY);
+              }
+            }
+            setError(errorMessageFromCode(code, evt.payload.message));
             setCreating(false);
             setJoining(false);
             setStarting(false);
+            setMatchmakingSearching(false);
           }
         });
+
+        if (typeof sessionStorage !== "undefined") {
+          const raw = sessionStorage.getItem(RESUME_STORAGE_KEY);
+          if (raw) {
+            try {
+              const data = JSON.parse(raw) as {
+                roomId: string;
+                seatConnectionId: string;
+              };
+              if (data.roomId && data.seatConnectionId) {
+                reconnectAwaitingSnapshotRef.current = true;
+                reconnectFromStorageRef.current = true;
+                setResumeReconnecting(true);
+                setRoom((prev) =>
+                  prev ??
+                  ({
+                    roomId: data.roomId,
+                    players: [],
+                    status: "in_game",
+                  } as RoomStatePayload)
+                );
+                client.send({
+                  type: "match:reconnect",
+                  payload: {
+                    roomId: data.roomId,
+                    seatConnectionId: data.seatConnectionId,
+                  },
+                });
+              }
+            } catch {
+              sessionStorage.removeItem(RESUME_STORAGE_KEY);
+            }
+          }
+        }
       } catch (e) {
         if (!active) return;
         const msg = e instanceof Error ? e.message : "WebSocket connect error";
@@ -187,6 +292,17 @@ export default function RoomsPage() {
     setJoining(true);
     setError(null);
     client.send({ type: "room:join", payload: { roomId: id } });
+  };
+
+  const onMatchmakingJoin = () => {
+    if (!connected || room) return;
+    setError(null);
+    client.send({ type: "matchmaking:join", payload: {} });
+  };
+
+  const onMatchmakingLeave = () => {
+    if (!connected) return;
+    client.send({ type: "matchmaking:leave", payload: {} });
   };
 
   const copyRoomId = useCallback(() => {
@@ -289,9 +405,37 @@ export default function RoomsPage() {
         {!connected && (
           <p className="mb-2 text-sm text-zinc-400">Connecting to server…</p>
         )}
+        {resumeReconnecting && connected && (
+          <p className="mb-2 text-sm text-amber-400">Reconnecting to match…</p>
+        )}
         {error && (
           <p className="mb-2 text-sm text-red-400">Error: {error}</p>
         )}
+
+        <section className="mb-4">
+          <h2 className="mb-2 text-sm font-medium text-zinc-400">Matchmaking</h2>
+          <p className="mb-2 text-xs text-zinc-500">
+            Queue with other players (2–4 per match). You&apos;ll enter a lobby when a group is found.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={onMatchmakingJoin}
+              disabled={!connected || !!room || matchmakingSearching}
+              className="rounded bg-sky-600 px-4 py-2 text-sm font-medium text-white disabled:cursor-not-allowed disabled:bg-sky-900/60"
+            >
+              {matchmakingSearching ? "Searching…" : "Find match"}
+            </button>
+            <button
+              type="button"
+              onClick={onMatchmakingLeave}
+              disabled={!connected || !matchmakingSearching}
+              className="rounded border border-zinc-600 bg-zinc-800 px-4 py-2 text-sm font-medium text-zinc-200 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              Cancel search
+            </button>
+          </div>
+        </section>
 
         <section className="mb-4">
           <button
@@ -479,9 +623,9 @@ export default function RoomsPage() {
             )}
           </div>
         )}
-        {!room && !error && (
+        {!room && !error && !matchmakingSearching && (
           <p className="mt-2 text-xs text-zinc-500">
-            Create a room or join by code / from the list.
+            Find a match, create a room, or join by code / from the list.
           </p>
         )}
       </div>

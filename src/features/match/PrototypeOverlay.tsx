@@ -28,6 +28,15 @@ export function PrototypeOverlay({ snapshot, onRestart }: PrototypeOverlayProps)
           <div>Shield: {p0.shieldActive ? "yes" : "no"}</div>
         </div>
       )}
+      {snapshot.players?.some((p) => p.reconnectPending) && (
+        <div className="mt-1 text-amber-300">
+          Reconnecting:{" "}
+          {snapshot.players
+            .filter((p) => p.reconnectPending)
+            .map((p) => p.id)
+            .join(", ")}
+        </div>
+      )}
       {snapshot.status === "ended" && (
         <div>Winner: {snapshot.winnerId ?? "Draw"}</div>
       )}
